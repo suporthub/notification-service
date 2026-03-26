@@ -7,6 +7,9 @@ COPY package.json ./
 RUN npm install --frozen-lockfile
 
 COPY tsconfig.json ./
+COPY prisma/ ./prisma/
+RUN npx prisma generate
+
 COPY src/ ./src/
 
 RUN npm run build

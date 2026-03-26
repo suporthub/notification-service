@@ -1,0 +1,116 @@
+// ─── Notification Service — Prisma Schema ────────────────────────────────────
+// Database: notification_db (PostgreSQL)
+// Purpose : Audit log for every notification dispatch + user opt-out preferences
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum NotificationChannel {
+  email
+  push
+  sms
+}
+
+enum NotificationPriority {
+  high
+  normal
+  low
+}
+
+enum DeliveryStatus {
+  pending  // written immediately before dispatch attempt
+  sent     // channel confirmed delivery
+  failed   // channel returned error
+  skipped  // deduplication hit OR user opted out
+}
+
+enum UserType {
+  live
+  demo
+  admin
+}
+
+/// Template groups control whether preferences apply.
+/// operational = always sent (OTPs, security alerts) — never blocked by preferences.
+/// alerts      = trading alerts (margin call, auto-cutoff) — user can opt out.
+/// marketing   = announcements — user can opt out.
+enum TemplateGroup {
+  operational
+  alerts
+  marketing
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+/// NotificationLog — immutable audit record for every dispatch attempt.
+/// Written once per Kafka message with status=pending, then updated to sent/failed/skipped.
+/// eventId is the deduplication key — any replay of the same Kafka message is a no-op.
+model NotificationLog {
+  id        String   @id @default(uuid())
+
+  /// Unique identifier from the Kafka event — prevents duplicate sends on consumer restart.
+  eventId   String   @unique
+
+  channel   NotificationChannel
+  template  String               // template name e.g. 'otp', 'margin_call'
+  group     TemplateGroup        // derived from template at dispatch time
+  priority  NotificationPriority @default(normal)
+  recipient String               // email address, FCM token, or phone number
+
+  /// The user this notification was sent to. Nullable for anonymous/system events.
+  userId    String?
+  userType  UserType?
+
+  status    DeliveryStatus @default(pending)
+
+  /// Number of delivery attempts (currently always 1 — reserved for future retry worker).
+  attempts  Int            @default(1)
+
+  /// Last SMTP / FCM error message. Null on success.
+  lastError String?
+
+  /// Timestamp of successful delivery. Null while pending or on failure.
+  sentAt    DateTime?
+
+  /// Full template data snapshot — for ops debugging without needing to re-parse Kafka.
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, userType])
+  @@index([status, createdAt])
+  @@index([template, createdAt])
+  @@map("notification_logs")
+}
+
+/// NotificationPreference — per-user opt-out store across channel × template group.
+/// operational group is never checked — those notifications are always sent.
+model NotificationPreference {
+  id        String        @id @default(uuid())
+
+  userId    String
+  userType  UserType
+
+  channel   NotificationChannel
+  group     TemplateGroup
+
+  /// false = user has opted out of this channel+group combination.
+  enabled   Boolean       @default(true)
+
+  updatedAt DateTime      @updatedAt
+  createdAt DateTime      @default(now())
+
+  /// One preference row per (user, channel, group) tuple.
+  @@unique([userId, userType, channel, group])
+  @@index([userId, userType])
+  @@map("notification_preferences")
+}

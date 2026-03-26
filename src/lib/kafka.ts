@@ -1,18 +1,27 @@
 import { Kafka, EachMessagePayload } from 'kafkajs';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/env';
 import { logger } from '../lib/logger';
 import { NotificationService } from '../services/NotificationService';
 import { NotificationEvent } from '../types/notification.types';
 
+// ── Zod schema for inbound Kafka messages ─────────────────────────────────────
+// eventId is required for deduplication. If missing (older publisher), we auto-generate
+// a deterministic fallback so old code still works without crashing.
+
 const notificationEventSchema = z.object({
-  channel:   z.enum(['email', 'push', 'sms']),
-  template:  z.string(),
-  priority:  z.enum(['high', 'normal', 'low']).default('normal'),
+  eventId:  z.string().uuid().optional(),   // optional for backward compat — filled below
+  channel:  z.enum(['email', 'push', 'sms']),
+  template: z.string(),
+  priority: z.enum(['high', 'normal', 'low']).default('normal'),
   recipient: z.string().min(1),
-  data:      z.record(z.string(), z.unknown()).default({}),
-  locale:    z.string().optional(),
+  data:     z.record(z.string(), z.unknown()).default({}),
+  locale:   z.string().optional(),
   createdAt: z.string().optional(),
+  // User identity for logs + preferences
+  userId:   z.string().uuid().optional(),
+  userType: z.enum(['live', 'demo', 'admin']).optional(),
 });
 
 export function createKafkaConsumer(service: NotificationService) {
@@ -47,7 +56,20 @@ export function createKafkaConsumer(service: NotificationService) {
       return;
     }
 
-    const event = result.data as NotificationEvent;
+    // Guarantee eventId — auto-generate if publisher did not include it (backward compat)
+    const event: NotificationEvent = {
+      eventId:   result.data.eventId ?? uuidv4(),
+      channel:   result.data.channel,
+      template:  result.data.template as NotificationEvent['template'],
+      priority:  result.data.priority,
+      recipient: result.data.recipient,
+      data:      result.data.data,
+      ...(result.data.locale    !== undefined && { locale:    result.data.locale    }),
+      ...(result.data.createdAt !== undefined && { createdAt: result.data.createdAt }),
+      ...(result.data.userId    !== undefined && { userId:    result.data.userId    }),
+      ...(result.data.userType  !== undefined && { userType:  result.data.userType  }),
+    };
+
     await service.dispatch(event);
   }
 

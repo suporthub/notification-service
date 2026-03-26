@@ -6,6 +6,9 @@ const schema = z.object({
   port:    z.coerce.number().default(3004),
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
 
+  // Database (notification_db via WireGuard)
+  databaseUrl: z.string().min(1, 'DATABASE_URL is required'),
+
   // Kafka
   kafkaBrokers:  z.string().transform((v) => v.split(',')),
   kafkaClientId: z.string().default('notification-service'),
@@ -27,6 +30,8 @@ const schema = z.object({
 const parsed = schema.safeParse({
   port:    process.env['PORT'],
   nodeEnv: process.env['NODE_ENV'],
+
+  databaseUrl: process.env['DATABASE_URL'],
 
   kafkaBrokers:  process.env['KAFKA_BROKERS'],
   kafkaClientId: process.env['KAFKA_CLIENT_ID'],

@@ -6,18 +6,20 @@ import { pinoHttp } from 'pino-http';
 
 import { config } from './config/env';
 import { logger } from './lib/logger';
+import { connectDB, disconnectDB, prisma } from './lib/prisma';
 
-// ── DI wiring — compose the object graph here ─────────────────────────────────
-import { EmailChannel } from './channels/EmailChannel';
-import { PushChannel }  from './channels/PushChannel';
-import { NotificationService } from './services/NotificationService';
-import { createKafkaConsumer } from './lib/kafka';
+// ── DI wiring — compose the object graph here ──────────────────────────────────
+import { EmailChannel }            from './channels/EmailChannel';
+import { PushChannel }             from './channels/PushChannel';
+import { NotificationRepository }  from './repositories/NotificationRepository';
+import { NotificationService }     from './services/NotificationService';
+import { createKafkaConsumer }     from './lib/kafka';
 
-const notificationService = new NotificationService([
-  new EmailChannel(),
-  new PushChannel(),
-  // new SmsChannel() — add when Twilio is ready
-]);
+const notificationRepo    = new NotificationRepository(prisma);
+const notificationService = new NotificationService(
+  [new EmailChannel(), new PushChannel()],
+  notificationRepo,
+);
 
 const kafkaConsumer = createKafkaConsumer(notificationService);
 
@@ -36,6 +38,9 @@ app.use((_req, res) => res.status(404).json({ success: false, message: 'Not foun
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────────
 async function bootstrap(): Promise<void> {
+  // Connect DB first — required for dedup checks before Kafka starts consuming
+  await connectDB();
+
   await kafkaConsumer.start();
 
   const server = app.listen(config.port, () => {
@@ -46,6 +51,7 @@ async function bootstrap(): Promise<void> {
     logger.info({ signal }, 'Shutting down notification-service…');
     server.close(async () => {
       await kafkaConsumer.stop();
+      await disconnectDB();
       process.exit(0);
     });
     setTimeout(() => process.exit(1), 10_000);
