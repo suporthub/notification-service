@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { NotificationTemplate } from '../types/notification.types';
 
 // ─── Email Template Engine ────────────────────────────────────────────────────
@@ -257,6 +259,26 @@ function renderAnnouncement(data: TemplateData): RenderedEmail {
   };
 }
 
+function renderIbSignup(data: TemplateData): RenderedEmail {
+  const firstName    = str(data, 'firstName', 'Partner');
+  const referralCode = str(data, 'referralCode', 'Pending');
+  const createdAt    = str(data, 'createdAt', new Date().toUTCString());
+
+  const templatePath = path.join(__dirname, '../../templates/ib_signup.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  // Inject dynamic values
+  html = html.replace(/{{firstName}}/g,    firstName);
+  html = html.replace(/{{referralCode}}/g, referralCode);
+  html = html.replace(/{{createdAt}}/g,    createdAt);
+
+  return {
+    subject: '[LiveFXHub] IB Partnership Application Received',
+    html,
+    text: `Congratulations ${firstName}! Your IB application under code ${referralCode} has been received at ${createdAt}.`,
+  };
+}
+
 // ── Template registry ─────────────────────────────────────────────────────────
 
 const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEmail> = {
@@ -271,6 +293,7 @@ const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEma
   deposit_approved:     renderDepositApproved,
   withdrawal_approved:  renderWithdrawalApproved,
   withdrawal_rejected:  renderWithdrawalRejected,
+  ib_signup:            renderIbSignup,
   announcement:         renderAnnouncement,
 };
 

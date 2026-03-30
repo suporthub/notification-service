@@ -19,6 +19,8 @@ export type NotificationTemplate =
   | 'deposit_approved'
   | 'withdrawal_approved'
   | 'withdrawal_rejected'
+  // IB Service
+  | 'ib_signup'
   // Admin announcements (marketing group — user can opt out)
   | 'announcement';
 
@@ -47,6 +49,7 @@ export const TEMPLATE_GROUP_MAP: Record<NotificationTemplate, TemplateGroup> = {
   deposit_approved:     'alerts',
   withdrawal_approved:  'alerts',
   withdrawal_rejected:  'alerts',
+  ib_signup:            'operational',
   announcement:         'marketing',
 };
 
