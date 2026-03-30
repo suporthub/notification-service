@@ -7,6 +7,7 @@ RUN npm install
 
 COPY tsconfig.json ./
 COPY prisma/ ./prisma/
+COPY templates/ ./templates/
 RUN npx prisma generate
 
 COPY src/ ./src/
@@ -26,6 +27,7 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/templates ./templates
 
 RUN useradd -m nodejs
 USER nodejs
