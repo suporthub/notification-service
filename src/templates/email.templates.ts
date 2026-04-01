@@ -294,7 +294,7 @@ function renderIbInvite(data: TemplateData): RenderedEmail {
       <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${referralCode}</p>
     </div>
     <div style="text-align:center;margin-top:24px;">
-      <a href="https://${referralLink}" style="background:#38bdf8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Join Now</a>
+      <a href="https://v3.livefxhub.com:8444/signup/${referralLink}" style="background:#38bdf8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Join Now</a>
     </div>
     <p style="color:#94a3b8;font-size:12px;margin-top:32px;">If you're not interested, you can simply ignore this invitation.</p>
   `);
