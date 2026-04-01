@@ -51,8 +51,8 @@ function otpBox(code: string): string {
 
 function renderOtp(data: TemplateData): RenderedEmail {
   const purpose = str(data, 'purpose', 'Verification');
-  const otp     = str(data, 'otp');
-  const expiry  = str(data, 'expiryMinutes', '5');
+  const otp = str(data, 'otp');
+  const expiry = str(data, 'expiryMinutes', '5');
   const html = layout('Your OTP', `
     <h2 style="color:#0f172a;margin:0 0 8px;">Verification Code</h2>
     <p style="color:#475569;margin:0 0 4px;">Your code for <strong>${purpose}</strong>:</p>
@@ -68,8 +68,8 @@ function renderOtp(data: TemplateData): RenderedEmail {
 }
 
 function renderNewDeviceLogin(data: TemplateData): RenderedEmail {
-  const device    = str(data, 'deviceInfo', 'Unknown device');
-  const ip        = str(data, 'ipAddress', 'Unknown');
+  const device = str(data, 'deviceInfo', 'Unknown device');
+  const ip = str(data, 'ipAddress', 'Unknown');
   const timestamp = str(data, 'timestamp', new Date().toUTCString());
   const html = layout('New Device Login', `
     <h2 style="color:#dc2626;margin:0 0 16px;">⚠️ New Device Login</h2>
@@ -110,7 +110,7 @@ function renderPasswordChanged(data: TemplateData): RenderedEmail {
 }
 
 function renderPasswordReset(data: TemplateData): RenderedEmail {
-  const otp    = str(data, 'otp');
+  const otp = str(data, 'otp');
   const expiry = str(data, 'expiryMinutes', '10');
   const html = layout('Password Reset', `
     <h2 style="color:#0f172a;margin:0 0 8px;">Password Reset Request</h2>
@@ -146,7 +146,7 @@ function renderWelcomeLive(data: TemplateData): RenderedEmail {
 
 function renderWelcomeDemo(data: TemplateData): RenderedEmail {
   const accountNumber = str(data, 'accountNumber');
-  const balance       = str(data, 'demoBalance', '10,000');
+  const balance = str(data, 'demoBalance', '10,000');
   const html = layout('Welcome to LiveFXHub Demo', `
     <h2 style="color:#0f172a;margin:0 0 16px;">Your Demo Account is Ready 🚀</h2>
     <p style="color:#475569;">Practice risk-free with your demo account:</p>
@@ -166,8 +166,8 @@ function renderWelcomeDemo(data: TemplateData): RenderedEmail {
 
 function renderAutoCutoff(data: TemplateData): RenderedEmail {
   const accountNumber = str(data, 'accountNumber');
-  const marginLevel   = str(data, 'marginLevel', '0');
-  const closedAt      = str(data, 'closedAt', new Date().toUTCString());
+  const marginLevel = str(data, 'marginLevel', '0');
+  const closedAt = str(data, 'closedAt', new Date().toUTCString());
   const html = layout('Auto Cutoff Triggered', `
     <h2 style="color:#dc2626;margin:0 0 16px;">⚠️ Auto Cutoff Triggered</h2>
     <p style="color:#475569;">Your account <strong>${accountNumber}</strong> reached the auto-cutoff margin level.</p>
@@ -187,7 +187,7 @@ function renderAutoCutoff(data: TemplateData): RenderedEmail {
 
 function renderMarginCall(data: TemplateData): RenderedEmail {
   const accountNumber = str(data, 'accountNumber');
-  const marginLevel   = str(data, 'marginLevel', '0');
+  const marginLevel = str(data, 'marginLevel', '0');
   const html = layout('Margin Call Warning', `
     <h2 style="color:#f59e0b;margin:0 0 16px;">⚠️ Margin Call Warning</h2>
     <p style="color:#475569;">Account <strong>${accountNumber}</strong> margin level has dropped to <strong style="color:#dc2626;">${marginLevel}%</strong>.</p>
@@ -201,7 +201,7 @@ function renderMarginCall(data: TemplateData): RenderedEmail {
 }
 
 function renderDepositApproved(data: TemplateData): RenderedEmail {
-  const amount   = str(data, 'amount', '0');
+  const amount = str(data, 'amount', '0');
   const currency = str(data, 'currency', 'USD');
   const html = layout('Deposit Approved', `
     <h2 style="color:#15803d;margin:0 0 16px;">✅ Deposit Approved</h2>
@@ -215,7 +215,7 @@ function renderDepositApproved(data: TemplateData): RenderedEmail {
 }
 
 function renderWithdrawalApproved(data: TemplateData): RenderedEmail {
-  const amount   = str(data, 'amount', '0');
+  const amount = str(data, 'amount', '0');
   const currency = str(data, 'currency', 'USD');
   const html = layout('Withdrawal Approved', `
     <h2 style="color:#15803d;margin:0 0 16px;">✅ Withdrawal Approved</h2>
@@ -229,9 +229,9 @@ function renderWithdrawalApproved(data: TemplateData): RenderedEmail {
 }
 
 function renderWithdrawalRejected(data: TemplateData): RenderedEmail {
-  const amount   = str(data, 'amount', '0');
+  const amount = str(data, 'amount', '0');
   const currency = str(data, 'currency', 'USD');
-  const reason   = str(data, 'reason', 'No reason provided');
+  const reason = str(data, 'reason', 'No reason provided');
   const html = layout('Withdrawal Rejected', `
     <h2 style="color:#dc2626;margin:0 0 16px;">❌ Withdrawal Rejected</h2>
     <p style="color:#475569;">Your withdrawal of <strong>${currency} ${amount}</strong> was rejected.</p>
@@ -246,8 +246,8 @@ function renderWithdrawalRejected(data: TemplateData): RenderedEmail {
 }
 
 function renderAnnouncement(data: TemplateData): RenderedEmail {
-  const title   = str(data, 'title', 'Important Update');
-  const body    = str(data, 'body', '');
+  const title = str(data, 'title', 'Important Update');
+  const body = str(data, 'body', '');
   const html = layout(title, `
     <h2 style="color:#0f172a;margin:0 0 16px;">${title}</h2>
     <div style="color:#475569;line-height:1.7;">${body}</div>
@@ -260,17 +260,17 @@ function renderAnnouncement(data: TemplateData): RenderedEmail {
 }
 
 function renderIbSignup(data: TemplateData): RenderedEmail {
-  const firstName    = str(data, 'firstName', 'Partner');
+  const firstName = str(data, 'firstName', 'Partner');
   const referralCode = str(data, 'referralCode', 'Pending');
-  const createdAt    = str(data, 'createdAt', new Date().toUTCString());
+  const createdAt = str(data, 'createdAt', new Date().toUTCString());
 
   const templatePath = path.join(__dirname, '../../templates/ib_signup.html');
   let html = fs.readFileSync(templatePath, 'utf8');
 
   // Inject dynamic values
-  html = html.replace(/{{firstName}}/g,    firstName);
+  html = html.replace(/{{firstName}}/g, firstName);
   html = html.replace(/{{referralCode}}/g, referralCode);
-  html = html.replace(/{{createdAt}}/g,    createdAt);
+  html = html.replace(/{{createdAt}}/g, createdAt);
 
   return {
     subject: '[LiveFXHub] IB Partnership Application Received',
@@ -279,22 +279,50 @@ function renderIbSignup(data: TemplateData): RenderedEmail {
   };
 }
 
+function renderIbInvite(data: TemplateData): RenderedEmail {
+  const friendName = str(data, 'friendName', 'Your friend');
+  const referralCode = str(data, 'referralCode', '');
+  const referralLink = str(data, 'referralLink', 'v3.livefxhub.com');
+
+  const html = layout('Invitation to Join LiveFXHub', `
+    <h2 style="color:#0f172a;margin:0 0 16px;">You're Invited! 🚀</h2>
+    <p style="color:#475569;">Hello,</p>
+    <p style="color:#475569;"><strong>${friendName}</strong> has invited you to join <strong>LiveFXHub</strong>, the professional trading platform.</p>
+    <p style="color:#475569;">Start your trading journey today with their referral code:</p>
+    <div style="background:#f0f9ff;border-radius:8px;padding:20px;margin:16px 0;text-align:center;">
+      <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Referral Code</p>
+      <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${referralCode}</p>
+    </div>
+    <div style="text-align:center;margin-top:24px;">
+      <a href="https://${referralLink}" style="background:#38bdf8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Join Now</a>
+    </div>
+    <p style="color:#94a3b8;font-size:12px;margin-top:32px;">If you're not interested, you can simply ignore this invitation.</p>
+  `);
+
+  return {
+    subject: `[LiveFXHub] ${friendName} invited you to join!`,
+    html,
+    text: `${friendName} invited you to join LiveFXHub! Use referral code: ${referralCode}. Join here: https://${referralLink}`,
+  };
+}
+
 // ── Template registry ─────────────────────────────────────────────────────────
 
 const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEmail> = {
-  otp:                  renderOtp,
-  new_device_login:     renderNewDeviceLogin,
-  password_changed:     renderPasswordChanged,
-  password_reset:       renderPasswordReset,
-  welcome_live:         renderWelcomeLive,
-  welcome_demo:         renderWelcomeDemo,
-  auto_cutoff:          renderAutoCutoff,
-  margin_call:          renderMarginCall,
-  deposit_approved:     renderDepositApproved,
-  withdrawal_approved:  renderWithdrawalApproved,
-  withdrawal_rejected:  renderWithdrawalRejected,
-  ib_signup:            renderIbSignup,
-  announcement:         renderAnnouncement,
+  otp: renderOtp,
+  new_device_login: renderNewDeviceLogin,
+  password_changed: renderPasswordChanged,
+  password_reset: renderPasswordReset,
+  welcome_live: renderWelcomeLive,
+  welcome_demo: renderWelcomeDemo,
+  auto_cutoff: renderAutoCutoff,
+  margin_call: renderMarginCall,
+  deposit_approved: renderDepositApproved,
+  withdrawal_approved: renderWithdrawalApproved,
+  withdrawal_rejected: renderWithdrawalRejected,
+  ib_signup: renderIbSignup,
+  ib_invite: renderIbInvite,
+  announcement: renderAnnouncement,
 };
 
 export function renderEmailTemplate(
