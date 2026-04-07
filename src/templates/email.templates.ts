@@ -280,29 +280,38 @@ function renderIbSignup(data: TemplateData): RenderedEmail {
 }
 
 function renderIbInvite(data: TemplateData): RenderedEmail {
-  const friendName = str(data, 'friendName', 'Your friend');
-  const referralCode = str(data, 'referralCode', '');
-  const referralLink = str(data, 'referralLink', 'v3.livefxhub.com');
+  const ibName = str(data, 'friendName', 'Your friend');
+  const ibCode = str(data, 'referralCode', '');
 
-  const html = layout('Invitation to Join LiveFXHub', `
-    <h2 style="color:#0f172a;margin:0 0 16px;">You're Invited! 🚀</h2>
-    <p style="color:#475569;">Hello,</p>
-    <p style="color:#475569;"><strong>${friendName}</strong> has invited you to join <strong>LiveFXHub</strong>, the professional trading platform.</p>
-    <p style="color:#475569;">Start your trading journey today with their referral code:</p>
-    <div style="background:#f0f9ff;border-radius:8px;padding:20px;margin:16px 0;text-align:center;">
-      <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Referral Code</p>
-      <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${referralCode}</p>
-    </div>
-    <div style="text-align:center;margin-top:24px;">
-      <a href="https://v3.livefxhub.com:8444/signup/${referralLink}" style="background:#38bdf8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Join Now</a>
-    </div>
-    <p style="color:#94a3b8;font-size:12px;margin-top:32px;">If you're not interested, you can simply ignore this invitation.</p>
-  `);
+  const templatePath = path.join(__dirname, '../../templates/ib_email_invite.html');
+  let html = '';
+  try {
+    html = fs.readFileSync(templatePath, 'utf8');
+  } catch (err) {
+    console.error('Failed to read ib_email_invite.html template, falling back to basic layout:', err);
+    // Fallback if template missing (should not happen in production)
+    html = layout('Invitation to Join LiveFXHub', `
+      <h2 style="color:#0f172a;margin:0 0 16px;">You're Invited! 🚀</h2>
+      <p style="color:#475569;">Hello,</p>
+      <p style="color:#475569;"><strong>${ibName}</strong> has invited you to join <strong>LiveFXHub</strong>, the professional trading platform.</p>
+      <div style="background:#f0f9ff;border-radius:8px;padding:20px;margin:16px 0;text-align:center;">
+        <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Referral Code</p>
+        <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${ibCode}</p>
+      </div>
+      <div style="text-align:center;margin-top:24px;">
+        <a href="https://www.livefxhub.com/register" style="background:#38bdf8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Join Now</a>
+      </div>
+    `);
+  }
+
+  // Inject dynamic values
+  html = html.replace(/{{IB_NAME}}/g, ibName);
+  html = html.replace(/{{IB_CODE}}/g, ibCode);
 
   return {
-    subject: `[LiveFXHub] ${friendName} invited you to join!`,
+    subject: `[LiveFXHub] ${ibName} invited you to join!`,
     html,
-    text: `${friendName} invited you to join LiveFXHub! Use referral code: ${referralCode}. Join here: https://${referralLink}`,
+    text: `${ibName} invited you to join LiveFXHub! Use referral code: ${ibCode}. Join here: https://www.livefxhub.com/register`,
   };
 }
 
