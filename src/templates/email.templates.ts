@@ -32,7 +32,7 @@ function layout(title: string, body: string): string {
         <tr><td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
           <p style="color:#94a3b8;font-size:12px;margin:0;">
             © ${new Date().getFullYear()} LiveFXHub. This is an automated message — please do not reply.
-          </p>
+          </p>A
         </td></tr>
       </table>
     </td></tr>
@@ -258,8 +258,8 @@ function renderAnnouncement(data: TemplateData): RenderedEmail {
     text: `${title}\n\n${body.replace(/<[^>]+>/g, '')}`,
   };
 }
-
-function renderIbSignup(data: TemplateData): RenderedEmail {
+// ✅ IB Signup (Welcome Email)
+export function renderIbSignup(data: TemplateData): RenderedEmail {
   const firstName = str(data, 'firstName', 'Partner');
   const referralCode = str(data, 'referralCode', 'Pending');
   const createdAt = str(data, 'createdAt', new Date().toUTCString());
@@ -267,7 +267,7 @@ function renderIbSignup(data: TemplateData): RenderedEmail {
   const templatePath = path.join(__dirname, '../../templates/ib_signup.html');
   let html = fs.readFileSync(templatePath, 'utf8');
 
-  // Inject dynamic values
+  // Inject dynamic values (matches your HTML placeholders)
   html = html.replace(/{{firstName}}/g, firstName);
   html = html.replace(/{{referralCode}}/g, referralCode);
   html = html.replace(/{{createdAt}}/g, createdAt);
@@ -279,32 +279,15 @@ function renderIbSignup(data: TemplateData): RenderedEmail {
   };
 }
 
-function renderIbInvite(data: TemplateData): RenderedEmail {
+// ✅ IB Invite Email
+export function renderIbInvite(data: TemplateData): RenderedEmail {
   const ibName = str(data, 'friendName', 'Your friend');
   const ibCode = str(data, 'referralCode', '');
 
   const templatePath = path.join(__dirname, '../../templates/ib_email_invite.html');
-  let html = '';
-  try {
-    html = fs.readFileSync(templatePath, 'utf8');
-  } catch (err) {
-    console.error('Failed to read ib_email_invite.html template, falling back to basic layout:', err);
-    // Fallback if template missing (should not happen in production)
-    html = layout('Invitation to Join LiveFXHub', `
-      <h2 style="color:#0f172a;margin:0 0 16px;">You're Invited! 🚀</h2>
-      <p style="color:#475569;">Hello,</p>
-      <p style="color:#475569;"><strong>${ibName}</strong> has invited you to join <strong>LiveFXHub</strong>, the professional trading platform.</p>
-      <div style="background:#f0f9ff;border-radius:8px;padding:20px;margin:16px 0;text-align:center;">
-        <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Referral Code</p>
-        <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${ibCode}</p>
-      </div>
-      <div style="text-align:center;margin-top:24px;">
-        <a href="https://www.livefxhub.com/register" style="background:#38bdf8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Join Now</a>
-      </div>
-    `);
-  }
+  let html = fs.readFileSync(templatePath, 'utf8');
 
-  // Inject dynamic values
+  // Inject dynamic values (matches your HTML placeholders)
   html = html.replace(/{{IB_NAME}}/g, ibName);
   html = html.replace(/{{IB_CODE}}/g, ibCode);
 
