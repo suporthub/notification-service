@@ -21,12 +21,17 @@ COPY src/ ./src/
 # ✅ Build project
 RUN npm run build
 
+# ✅ Strip dev dependencies before copying to runner
+RUN npm prune --production
+
 
 # Stage 2: production image
-FROM node:20-bullseye AS runner
+FROM node:20-bullseye-slim AS runner
 
-# ✅ Install only required package
-RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/*
+# ✅ Install dumb-init via binary — avoids slow apt-get on bullseye mirrors
+RUN wget -q -O /usr/local/bin/dumb-init \
+    https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
+    && chmod +x /usr/local/bin/dumb-init
 
 WORKDIR /app
 ENV NODE_ENV=production

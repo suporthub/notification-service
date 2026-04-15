@@ -32,7 +32,7 @@ function layout(title: string, body: string): string {
         <tr><td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
           <p style="color:#94a3b8;font-size:12px;margin:0;">
             © ${new Date().getFullYear()} LiveFXHub. This is an automated message — please do not reply.
-          </p>A
+          </p>
         </td></tr>
       </table>
     </td></tr>
@@ -45,6 +45,21 @@ function otpBox(code: string): string {
   return `<div style="background:#f0f9ff;border:2px dashed #38bdf8;border-radius:8px;padding:24px;text-align:center;margin:24px 0;">
     <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#0f172a;">${code}</span>
   </div>`;
+}
+
+// ── Strip HTML tags for safe plain-text fallback ──────────────────────────────
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
+// ── Sanitize untrusted HTML to prevent XSS ───────────────────────────────────
+// NOTE: `body` in renderAnnouncement is assumed to be admin-authored only.
+// If this ever accepts user input, replace this with a proper sanitizer (e.g. DOMPurify server-side).
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/on\w+='[^']*'/gi, '');
 }
 
 // ── Templates ─────────────────────────────────────────────────────────────────
@@ -247,7 +262,9 @@ function renderWithdrawalRejected(data: TemplateData): RenderedEmail {
 
 function renderAnnouncement(data: TemplateData): RenderedEmail {
   const title = str(data, 'title', 'Important Update');
-  const body = str(data, 'body', '');
+  // NOTE: body is assumed to be admin-authored. If this ever accepts user input,
+  // replace sanitizeHtml() with a proper server-side sanitizer (e.g. sanitize-html).
+  const body = sanitizeHtml(str(data, 'body', ''));
   const html = layout(title, `
     <h2 style="color:#0f172a;margin:0 0 16px;">${title}</h2>
     <div style="color:#475569;line-height:1.7;">${body}</div>
@@ -255,9 +272,10 @@ function renderAnnouncement(data: TemplateData): RenderedEmail {
   return {
     subject: `[LiveFXHub] ${title}`,
     html,
-    text: `${title}\n\n${body.replace(/<[^>]+>/g, '')}`,
+    text: `${title}\n\n${stripHtml(body)}`,
   };
 }
+
 // ✅ IB Signup (Welcome Email)
 export function renderIbSignup(data: TemplateData): RenderedEmail {
   const firstName = str(data, 'firstName', 'Partner');
@@ -267,7 +285,6 @@ export function renderIbSignup(data: TemplateData): RenderedEmail {
   const templatePath = path.join(__dirname, '../../templates/ib_signup.html');
   let html = fs.readFileSync(templatePath, 'utf8');
 
-  // Inject dynamic values (matches your HTML placeholders)
   html = html.replace(/{{firstName}}/g, firstName);
   html = html.replace(/{{referralCode}}/g, referralCode);
   html = html.replace(/{{createdAt}}/g, createdAt);
@@ -287,7 +304,6 @@ export function renderIbInvite(data: TemplateData): RenderedEmail {
   const templatePath = path.join(__dirname, '../../templates/ib_email_invite.html');
   let html = fs.readFileSync(templatePath, 'utf8');
 
-  // Inject dynamic values (matches your HTML placeholders)
   html = html.replace(/{{IB_NAME}}/g, ibName);
   html = html.replace(/{{IB_CODE}}/g, ibCode);
 
