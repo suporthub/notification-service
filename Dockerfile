@@ -2,22 +2,30 @@
 FROM node:20-bullseye AS builder
 
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+
+# ✅ Copy both package.json + lock file
+COPY package.json package-lock.json ./
+
+# ✅ Use npm ci (faster + reliable)
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY prisma/ ./prisma/
 COPY templates/ ./templates/
+
+# ✅ Generate prisma
 RUN npx prisma generate
 
 COPY src/ ./src/
+
+# ✅ Build project
 RUN npm run build
 
 
 # Stage 2: production image
 FROM node:20-bullseye AS runner
 
-# Only need dumb-init now
+# ✅ Install only required package
 RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
