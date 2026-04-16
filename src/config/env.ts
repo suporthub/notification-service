@@ -6,6 +6,11 @@ const schema = z.object({
   port:    z.coerce.number().default(3004),
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
 
+  // Logging
+  serviceName: z.string().default('notification-service'),
+  logLevel:    z.enum(['trace','debug','info','warn','error','fatal']).default('debug'),
+  logToFile:   z.string().transform(v => v !== 'false').default('true'),
+
   // Database (notification_db via WireGuard)
   databaseUrl: z.string().min(1, 'DATABASE_URL is required'),
 
@@ -30,6 +35,9 @@ const schema = z.object({
 const parsed = schema.safeParse({
   port:    process.env['PORT'],
   nodeEnv: process.env['NODE_ENV'],
+  serviceName: process.env['SERVICE_NAME'],
+  logLevel:    process.env['LOG_LEVEL'],
+  logToFile:   process.env['LOG_TO_FILE'],
 
   databaseUrl: process.env['DATABASE_URL'],
 
