@@ -21,6 +21,7 @@ export type NotificationTemplate =
   | 'withdrawal_rejected'
   // IB Service
   | 'ib_signup'
+  | 'ib_invite'
   // Admin announcements (marketing group — user can opt out)
   | 'announcement';
 
@@ -38,19 +39,20 @@ export type TemplateGroup = 'operational' | 'alerts' | 'marketing';
 
 /** Maps each template to its group — used by NotificationService for preference checks */
 export const TEMPLATE_GROUP_MAP: Record<NotificationTemplate, TemplateGroup> = {
-  otp:                  'operational',
-  new_device_login:     'operational',
-  password_changed:     'operational',
-  password_reset:       'operational',
-  welcome_live:         'operational',
-  welcome_demo:         'operational',
-  auto_cutoff:          'alerts',
-  margin_call:          'alerts',
-  deposit_approved:     'alerts',
-  withdrawal_approved:  'alerts',
-  withdrawal_rejected:  'alerts',
-  ib_signup:            'operational',
-  announcement:         'marketing',
+  otp: 'operational',
+  new_device_login: 'operational',
+  password_changed: 'operational',
+  password_reset: 'operational',
+  welcome_live: 'operational',
+  welcome_demo: 'operational',
+  auto_cutoff: 'alerts',
+  margin_call: 'alerts',
+  deposit_approved: 'alerts',
+  withdrawal_approved: 'alerts',
+  withdrawal_rejected: 'alerts',
+  ib_signup: 'operational',
+  ib_invite: 'marketing',
+  announcement: 'marketing',
 };
 
 /**
@@ -63,34 +65,34 @@ export interface NotificationEvent {
    * Used as the deduplication key: if this eventId already exists in notification_logs,
    * the dispatch is skipped (exactly-once delivery across consumer restarts).
    */
-  eventId:   string;
+  eventId: string;
 
-  channel:   NotificationChannel;
-  template:  NotificationTemplate;
-  priority:  NotificationPriority;
+  channel: NotificationChannel;
+  template: NotificationTemplate;
+  priority: NotificationPriority;
   recipient: string;          // email address, FCM token, or phone number
 
   /**
    * The user this notification is for.
    * Optional: anonymous/system notifications may omit these.
    */
-  userId?:   string;
+  userId?: string;
   userType?: UserType;
 
   /** Template data — varies per template */
-  data:      Record<string, unknown>;
+  data: Record<string, unknown>;
 
   /** ISO timestamp the event was created — used for staleness check */
   createdAt?: string;
 
   /** BCP-47 locale for template rendering. Default: 'en' */
-  locale?:    string;
+  locale?: string;
 }
 
 /** Delivery result returned from a channel handler */
 export interface DeliveryResult {
-  success:   boolean;
-  channel:   NotificationChannel;
+  success: boolean;
+  channel: NotificationChannel;
   recipient: string;
-  error?:    string;
+  error?: string;
 }
