@@ -29,7 +29,7 @@ RUN npm prune --production
 FROM node:20-bullseye-slim AS runner
 
 # ✅ Install dumb-init via binary — avoids slow apt-get on bullseye mirrors
-RUN wget -q -O /usr/local/bin/dumb-init \
+RUN curl -fsSL -o /usr/local/bin/dumb-init \
     https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
     && chmod +x /usr/local/bin/dumb-init
 
