@@ -65,43 +65,46 @@ function sanitizeHtml(html: string): string {
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 function renderOtp(data: TemplateData): RenderedEmail {
-  const purpose = str(data, 'purpose', 'Verification');
   const otp = str(data, 'otp');
   const expiry = str(data, 'expiryMinutes', '5');
-  const html = layout('Your OTP', `
-    <h2 style="color:#0f172a;margin:0 0 8px;">Verification Code</h2>
-    <p style="color:#475569;margin:0 0 4px;">Your code for <strong>${purpose}</strong>:</p>
-    ${otpBox(otp)}
-    <p style="color:#64748b;font-size:13px;">Expires in <strong>${expiry} minutes</strong>. Never share this code with anyone.</p>
-    <p style="color:#94a3b8;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
-  `);
+  const accountEmail = str(data, 'accountEmail', '');
+  const timestamp = str(data, 'timestamp', new Date().toUTCString());
+
+  const templatePath = path.join(__dirname, '../../templates/2fa.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{OTP_CODE}}/g, otp);
+  html = html.replace(/{{EXPIRY_MINUTES}}/g, expiry);
+  html = html.replace(/{{ACCOUNT_EMAIL}}/g, accountEmail);
+  html = html.replace(/{{TIMESTAMP}}/g, timestamp);
+
   return {
-    subject: `[LiveFXHub] Your ${purpose} Code`,
+    subject: `[LiveFXHub] Your Verification Code`,
     html,
-    text: `Your LiveFXHub ${purpose} code is: ${otp}. It expires in ${expiry} minutes.`,
+    text: `Your LiveFXHub verification code is: ${otp}. It expires in ${expiry} minutes.`,
   };
 }
 
 function renderNewDeviceLogin(data: TemplateData): RenderedEmail {
   const device = str(data, 'deviceInfo', 'Unknown device');
   const ip = str(data, 'ipAddress', 'Unknown');
+  const location = str(data, 'location', 'Unknown');
   const timestamp = str(data, 'timestamp', new Date().toUTCString());
-  const html = layout('New Device Login', `
-    <h2 style="color:#dc2626;margin:0 0 16px;">⚠️ New Device Login</h2>
-    <p style="color:#475569;">Your LiveFXHub account was accessed from a <strong>new device</strong>:</p>
-    <table width="100%" style="border-collapse:collapse;margin:16px 0;">
-      <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:10px 0;color:#94a3b8;width:120px;">Device</td><td style="padding:10px 0;color:#0f172a;font-weight:600;">${device}</td></tr>
-      <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:10px 0;color:#94a3b8;">IP Address</td><td style="padding:10px 0;color:#0f172a;font-weight:600;">${ip}</td></tr>
-      <tr><td style="padding:10px 0;color:#94a3b8;">Time</td><td style="padding:10px 0;color:#0f172a;font-weight:600;">${timestamp}</td></tr>
-    </table>
-    <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:16px;border-radius:4px;">
-      <p style="color:#dc2626;font-weight:600;margin:0;">If this wasn't you, change your password and contact support immediately.</p>
-    </div>
-  `);
+  const accountEmail = str(data, 'accountEmail', '');
+
+  const templatePath = path.join(__dirname, '../../templates/login.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{IP_ADDRESS}}/g, ip);
+  html = html.replace(/{{LOCATION}}/g, location);
+  html = html.replace(/{{TIMESTAMP}}/g, timestamp);
+  html = html.replace(/{{DEVICE}}/g, device);
+  html = html.replace(/{{ACCOUNT_EMAIL}}/g, accountEmail);
+
   return {
     subject: '[LiveFXHub] New Device Login Detected',
     html,
-    text: `New device login detected on your LiveFXHub account. Device: ${device}, IP: ${ip}, Time: ${timestamp}. If not you, change your password immediately.`,
+    text: `New device login detected on your LiveFXHub account. Device: ${device}, IP: ${ip}, Location: ${location}, Time: ${timestamp}. If not you, change your password immediately.`,
   };
 }
 
@@ -143,39 +146,51 @@ function renderPasswordReset(data: TemplateData): RenderedEmail {
 
 function renderWelcomeLive(data: TemplateData): RenderedEmail {
   const accountNumber = str(data, 'accountNumber');
-  const html = layout('Welcome to LiveFXHub', `
-    <h2 style="color:#0f172a;margin:0 0 16px;">Welcome to LiveFXHub! 🎉</h2>
-    <p style="color:#475569;">Your live trading account is ready:</p>
-    <div style="background:#f0f9ff;border-radius:8px;padding:20px;margin:16px 0;text-align:center;">
-      <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Account Number</p>
-      <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${accountNumber}</p>
-    </div>
-    <p style="color:#475569;">Complete your KYC verification to unlock full trading access.</p>
-  `);
+  const email = str(data, 'email');
+  const accountType = str(data, 'accountType', 'Live');
+  const accountCategory = str(data, 'accountCategory', 'Standard');
+  const phone = str(data, 'phone', '');
+  const registrationDate = str(data, 'registrationDate', new Date().toUTCString());
+
+  const templatePath = path.join(__dirname, '../../templates/signup.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{ACCOUNT_NUMBER}}/g, accountNumber);
+  html = html.replace(/{{EMAIL}}/g, email);
+  html = html.replace(/{{ACCOUNT_TYPE}}/g, accountType);
+  html = html.replace(/{{ACCOUNT_CATEGORY}}/g, accountCategory);
+  html = html.replace(/{{PHONE}}/g, phone);
+  html = html.replace(/{{REGISTRATION_DATE}}/g, registrationDate);
+
   return {
     subject: `[LiveFXHub] Welcome! Your Account ${accountNumber} is Ready`,
     html,
-    text: `Welcome to LiveFXHub! Your account number is ${accountNumber}. Complete KYC to start trading.`,
+    text: `Welcome to LiveFXHub! Your live account ${accountNumber} has been created. Login with ${email}.`,
   };
 }
 
 function renderWelcomeDemo(data: TemplateData): RenderedEmail {
   const accountNumber = str(data, 'accountNumber');
-  const balance = str(data, 'demoBalance', '10,000');
-  const html = layout('Welcome to LiveFXHub Demo', `
-    <h2 style="color:#0f172a;margin:0 0 16px;">Your Demo Account is Ready 🚀</h2>
-    <p style="color:#475569;">Practice risk-free with your demo account:</p>
-    <div style="background:#f0fdf4;border-radius:8px;padding:20px;margin:16px 0;text-align:center;">
-      <p style="color:#64748b;font-size:13px;margin:0 0 4px;">Account Number</p>
-      <p style="color:#0f172a;font-size:24px;font-weight:700;margin:0;letter-spacing:2px;">${accountNumber}</p>
-      <p style="color:#64748b;font-size:13px;margin:8px 0 4px;">Virtual Balance</p>
-      <p style="color:#15803d;font-size:22px;font-weight:700;margin:0;">$${balance}</p>
-    </div>
-  `);
+  const email = str(data, 'email');
+  const accountType = str(data, 'accountType', 'Demo');
+  const accountCategory = str(data, 'accountCategory', 'Standard');
+  const phone = str(data, 'phone', '');
+  const registrationDate = str(data, 'registrationDate', new Date().toUTCString());
+
+  const templatePath = path.join(__dirname, '../../templates/signup.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{ACCOUNT_NUMBER}}/g, accountNumber);
+  html = html.replace(/{{EMAIL}}/g, email);
+  html = html.replace(/{{ACCOUNT_TYPE}}/g, accountType);
+  html = html.replace(/{{ACCOUNT_CATEGORY}}/g, accountCategory);
+  html = html.replace(/{{PHONE}}/g, phone);
+  html = html.replace(/{{REGISTRATION_DATE}}/g, registrationDate);
+
   return {
     subject: `[LiveFXHub] Your Demo Account ${accountNumber} is Ready`,
     html,
-    text: `Your LiveFXHub demo account is ready. Account: ${accountNumber}, Balance: $${balance}.`,
+    text: `Your LiveFXHub demo account is ready. Account: ${accountNumber}. Login with ${email}.`,
   };
 }
 
@@ -314,78 +329,6 @@ export function renderIbInvite(data: TemplateData): RenderedEmail {
   };
 }
 
-// ✅ Login Alert Email
-export function renderLoginAlert(data: TemplateData): RenderedEmail {
-  const ipAddress = str(data, 'ipAddress', 'Unknown');
-  const location = str(data, 'location', 'Unknown');
-  const timestamp = str(data, 'timestamp', new Date().toUTCString());
-  const device = str(data, 'deviceInfo', 'Unknown device');
-  const accountEmail = str(data, 'accountEmail');
-
-  const templatePath = path.join(__dirname, '../../templates/login.html');
-  let html = fs.readFileSync(templatePath, 'utf8');
-
-  html = html.replace(/{{IP_ADDRESS}}/g, ipAddress);
-  html = html.replace(/{{LOCATION}}/g, location);
-  html = html.replace(/{{TIMESTAMP}}/g, timestamp);
-  html = html.replace(/{{DEVICE}}/g, device);
-  html = html.replace(/{{ACCOUNT_EMAIL}}/g, accountEmail);
-
-  return {
-    subject: '[LiveFXHub] New Login Detected on Your Account',
-    html,
-    text: `A new login was detected on your LiveFXHub account. IP: ${ipAddress}, Location: ${location}, Device: ${device}, Time: ${timestamp}. If this wasn't you, change your password immediately at https://www.livefxhub.com`,
-  };
-}
-
-// ✅ Signup / Account Created Email
-export function renderSignup(data: TemplateData): RenderedEmail {
-  const accountNumber = str(data, 'accountNumber');
-  const email = str(data, 'email');
-  const accountType = str(data, 'accountType', 'Live');
-  const accountCategory = str(data, 'accountCategory', 'Standard');
-  const phone = str(data, 'phone', '');
-  const registrationDate = str(data, 'registrationDate', new Date().toUTCString());
-
-  const templatePath = path.join(__dirname, '../../templates/signup.html');
-  let html = fs.readFileSync(templatePath, 'utf8');
-
-  html = html.replace(/{{ACCOUNT_NUMBER}}/g, accountNumber);
-  html = html.replace(/{{EMAIL}}/g, email);
-  html = html.replace(/{{ACCOUNT_TYPE}}/g, accountType);
-  html = html.replace(/{{ACCOUNT_CATEGORY}}/g, accountCategory);
-  html = html.replace(/{{PHONE}}/g, phone);
-  html = html.replace(/{{REGISTRATION_DATE}}/g, registrationDate);
-
-  return {
-    subject: `[LiveFXHub] Welcome! Your Account ${accountNumber} Has Been Created`,
-    html,
-    text: `Welcome to LiveFXHub! Your account ${accountNumber} has been created. Email: ${email}, Type: ${accountType}, Registered: ${registrationDate}. Login at https://www.livefxhub.com/login`,
-  };
-}
-
-// ✅ 2FA / OTP Verification Email
-export function render2fa(data: TemplateData): RenderedEmail {
-  const otpCode = str(data, 'otp');
-  const accountEmail = str(data, 'accountEmail');
-  const timestamp = str(data, 'timestamp', new Date().toUTCString());
-  const expiryMinutes = str(data, 'expiryMinutes', '10');
-
-  const templatePath = path.join(__dirname, '../../templates/2fa.html');
-  let html = fs.readFileSync(templatePath, 'utf8');
-
-  html = html.replace(/{{OTP_CODE}}/g, otpCode);
-  html = html.replace(/{{ACCOUNT_EMAIL}}/g, accountEmail);
-  html = html.replace(/{{TIMESTAMP}}/g, timestamp);
-  html = html.replace(/{{EXPIRY_MINUTES}}/g, expiryMinutes);
-
-  return {
-    subject: '[LiveFXHub] Your Two-Factor Authentication Code',
-    html,
-    text: `Your LiveFXHub 2FA code is: ${otpCode}. It expires in ${expiryMinutes} minutes. Never share this code with anyone.`,
-  };
-}
-
 // ── Template registry ─────────────────────────────────────────────────────────
 
 const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEmail> = {
@@ -402,9 +345,6 @@ const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEma
   withdrawal_rejected: renderWithdrawalRejected,
   ib_signup: renderIbSignup,
   ib_invite: renderIbInvite,
-  login_alert: renderLoginAlert,
-  signup: renderSignup,
-  two_fa: render2fa,
   announcement: renderAnnouncement,
 };
 
