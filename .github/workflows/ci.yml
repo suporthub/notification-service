@@ -16,29 +16,31 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          command_timeout: 25m
+          command_timeout: 45m
 
-          script: |
-            set -e
-            cd /v3/notification-service
-            
-            echo "📦 Sync code"
-            git fetch origin
-            git reset --hard origin/${{ github.ref_name }}
-            
-            echo "🌐 Fix docker timeout"
-            export DOCKER_CLIENT_TIMEOUT=300
-            export COMPOSE_HTTP_TIMEOUT=300
-            
-            echo "📥 Pre-pull base image (retry)"
-            docker pull node:20-bullseye || docker pull node:20-bullseye || true
-            
-            echo "🐳 Build (retry enabled)"
-            docker build -t notification-service:local . \
-              || (sleep 5 && docker build -t notification-service:local .)
-            
-            echo "📦 Import to k3s"
-            docker save notification-service:local | sudo k3s ctr images import -
-            
-            echo "🚀 Restart deployment"
-            kubectl rollout restart deployment/notification-service -n default
+script: |
+  set -e
+  cd /v3/notification-service
+  
+  echo "📦 Sync code"
+  git fetch origin
+  git reset --hard origin/${{ github.ref_name }}
+  
+  echo "🌐 Fix docker timeout"
+  export DOCKER_CLIENT_TIMEOUT=600
+  export COMPOSE_HTTP_TIMEOUT=600
+  
+  echo "📥 Pull image only if missing"
+  docker images | grep node:20-bullseye || docker pull node:20-bullseye
+  
+  echo "🐳 Build"
+  docker build -t notification-service:local . \
+    || (sleep 5 && docker build -t notification-service:local .)
+  
+  echo "📦 Import to k3s"
+  docker save notification-service:local | sudo k3s ctr images import -
+  
+  echo "🚀 Restart deployment"
+  kubectl rollout restart deployment/notification-service -n default
+
+         
