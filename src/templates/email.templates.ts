@@ -314,6 +314,78 @@ export function renderIbInvite(data: TemplateData): RenderedEmail {
   };
 }
 
+// ✅ Login Alert Email
+export function renderLoginAlert(data: TemplateData): RenderedEmail {
+  const ipAddress = str(data, 'ipAddress', 'Unknown');
+  const location = str(data, 'location', 'Unknown');
+  const timestamp = str(data, 'timestamp', new Date().toUTCString());
+  const device = str(data, 'deviceInfo', 'Unknown device');
+  const accountEmail = str(data, 'accountEmail');
+
+  const templatePath = path.join(__dirname, '../../templates/login.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{IP_ADDRESS}}/g, ipAddress);
+  html = html.replace(/{{LOCATION}}/g, location);
+  html = html.replace(/{{TIMESTAMP}}/g, timestamp);
+  html = html.replace(/{{DEVICE}}/g, device);
+  html = html.replace(/{{ACCOUNT_EMAIL}}/g, accountEmail);
+
+  return {
+    subject: '[LiveFXHub] New Login Detected on Your Account',
+    html,
+    text: `A new login was detected on your LiveFXHub account. IP: ${ipAddress}, Location: ${location}, Device: ${device}, Time: ${timestamp}. If this wasn't you, change your password immediately at https://www.livefxhub.com`,
+  };
+}
+
+// ✅ Signup / Account Created Email
+export function renderSignup(data: TemplateData): RenderedEmail {
+  const accountNumber = str(data, 'accountNumber');
+  const email = str(data, 'email');
+  const accountType = str(data, 'accountType', 'Live');
+  const accountCategory = str(data, 'accountCategory', 'Standard');
+  const phone = str(data, 'phone', '');
+  const registrationDate = str(data, 'registrationDate', new Date().toUTCString());
+
+  const templatePath = path.join(__dirname, '../../templates/signup.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{ACCOUNT_NUMBER}}/g, accountNumber);
+  html = html.replace(/{{EMAIL}}/g, email);
+  html = html.replace(/{{ACCOUNT_TYPE}}/g, accountType);
+  html = html.replace(/{{ACCOUNT_CATEGORY}}/g, accountCategory);
+  html = html.replace(/{{PHONE}}/g, phone);
+  html = html.replace(/{{REGISTRATION_DATE}}/g, registrationDate);
+
+  return {
+    subject: `[LiveFXHub] Welcome! Your Account ${accountNumber} Has Been Created`,
+    html,
+    text: `Welcome to LiveFXHub! Your account ${accountNumber} has been created. Email: ${email}, Type: ${accountType}, Registered: ${registrationDate}. Login at https://www.livefxhub.com/login`,
+  };
+}
+
+// ✅ 2FA / OTP Verification Email
+export function render2fa(data: TemplateData): RenderedEmail {
+  const otpCode = str(data, 'otp');
+  const accountEmail = str(data, 'accountEmail');
+  const timestamp = str(data, 'timestamp', new Date().toUTCString());
+  const expiryMinutes = str(data, 'expiryMinutes', '10');
+
+  const templatePath = path.join(__dirname, '../../templates/2fa.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{OTP_CODE}}/g, otpCode);
+  html = html.replace(/{{ACCOUNT_EMAIL}}/g, accountEmail);
+  html = html.replace(/{{TIMESTAMP}}/g, timestamp);
+  html = html.replace(/{{EXPIRY_MINUTES}}/g, expiryMinutes);
+
+  return {
+    subject: '[LiveFXHub] Your Two-Factor Authentication Code',
+    html,
+    text: `Your LiveFXHub 2FA code is: ${otpCode}. It expires in ${expiryMinutes} minutes. Never share this code with anyone.`,
+  };
+}
+
 // ── Template registry ─────────────────────────────────────────────────────────
 
 const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEmail> = {
@@ -330,6 +402,9 @@ const REGISTRY: Record<NotificationTemplate, (data: TemplateData) => RenderedEma
   withdrawal_rejected: renderWithdrawalRejected,
   ib_signup: renderIbSignup,
   ib_invite: renderIbInvite,
+  login_alert: renderLoginAlert,
+  signup: renderSignup,
+  two_fa: render2fa,
   announcement: renderAnnouncement,
 };
 
