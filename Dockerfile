@@ -3,6 +3,9 @@ FROM node:20-bullseye AS builder
 
 WORKDIR /app
 
+# ✅ Install dumb-init here where apt works reliably
+RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/*
+
 # ✅ Copy both package.json + lock file
 COPY package.json package-lock.json ./
 
@@ -28,10 +31,8 @@ RUN npm prune --production
 # Stage 2: production image
 FROM node:20-bullseye-slim AS runner
 
-# ✅ Install dumb-init via binary — avoids slow apt-get on bullseye mirrors
-RUN curl -fsSL -o /usr/local/bin/dumb-init \
-    https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 \
-    && chmod +x /usr/local/bin/dumb-init
+# ✅ Copy dumb-init binary from builder — no apt/curl/wget needed in slim image
+COPY --from=builder /usr/bin/dumb-init /usr/local/bin/dumb-init
 
 WORKDIR /app
 ENV NODE_ENV=production
