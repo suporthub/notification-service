@@ -1,59 +1,45 @@
-# ─────────────────────────────────────────────────────────────
-# Stage 1: Builder
-# ─────────────────────────────────────────────────────────────
-FROM node:20-bullseye AS builder
+# ── Build Stage ──
+FROM node:20-slim AS builder
+
+# Install OpenSSL for Prisma and dumb-init
+RUN apt-get update && apt-get install -y openssl dumb-init && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install dumb-init
-RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/*
+# Cache dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci --prefer-offline --no-audit
 
-# Install dependencies (cached properly)
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Copy prisma first (needed for generate)
+# Generate Prisma Client
 COPY prisma/ ./prisma/
 RUN npx prisma generate
 
-# Copy source code
-COPY src/ ./src/
-
-# ✅ Copy templates AFTER src (important for cache busting)
+# Copy templates (used by notification service)
 COPY templates/ ./templates/
 
-# Copy tsconfig
+# Copy source and build
 COPY tsconfig.json ./
-
-# Build project
+COPY src/ ./src/
 RUN npm run build
 
-# Remove dev dependencies
-RUN npm prune --production
+# ── Runtime Stage ──
+FROM node:20-slim AS runner
 
-
-# ─────────────────────────────────────────────────────────────
-# Stage 2: Runtime
-# ─────────────────────────────────────────────────────────────
-FROM node:20-bullseye
+# Install OpenSSL and dumb-init
+RUN apt-get update && apt-get install -y openssl dumb-init && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy dumb-init
-COPY --from=builder /usr/bin/dumb-init /usr/local/bin/dumb-init
-
-# Copy required files
+# Copy necessary files from builder
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-
-# ✅ Ensure latest templates are copied
 COPY --from=builder /app/templates ./templates
 
-# Create non-root user
-RUN useradd -m nodejs
+# Add non-root user for security
+RUN useradd -m nodejs && chown -R nodejs:nodejs /app
 USER nodejs
 
 EXPOSE 3004
