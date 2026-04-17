@@ -18,3 +18,5 @@ Thumbs.db
 logs/
 *.log*
 *.tar
+notification.tar
+*.tar
