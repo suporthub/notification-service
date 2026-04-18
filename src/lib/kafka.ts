@@ -6,22 +6,55 @@ import { logger } from '../lib/logger';
 import { NotificationService } from '../services/NotificationService';
 import { NotificationEvent } from '../types/notification.types';
 
-// ── Zod schema for inbound Kafka messages ─────────────────────────────────────
-// eventId is required for deduplication. If missing (older publisher), we auto-generate
-// a deterministic fallback so old code still works without crashing.
+// ── Per-template data schemas ─────────────────────────────────────────────────
+// Each schema enforces the exact fields each template renderer needs.
+// This catches missing fields at the consumer boundary, not silently at render time.
 
+const otpDataSchema = z.object({
+  otp:           z.string().min(1),
+  expiryMinutes: z.string().optional(),
+  accountEmail:  z.string().email(),        // ← REQUIRED: fixes blank Account field
+  timestamp:     z.string().optional(),
+});
+
+const loginDataSchema = z.object({
+  ipAddress:    z.string(),
+  location:     z.string().optional(),
+  timestamp:    z.string().optional(),
+  deviceInfo:   z.string().optional(),
+  accountEmail: z.string().email(),         // ← REQUIRED: fixes blank Account field
+});
+
+const welcomeDataSchema = z.object({
+  accountNumber:    z.string().min(1),
+  email:            z.string().email(),
+  accountType:      z.string().optional(),
+  accountCategory:  z.string().optional(),
+  phone:            z.string().optional(),
+  registrationDate: z.string().optional(),
+});
+
+// ── Template → data schema map ────────────────────────────────────────────────
+const TEMPLATE_DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
+  otp:              otpDataSchema,
+  new_device_login: loginDataSchema,
+  welcome_live:     welcomeDataSchema,
+  welcome_demo:     welcomeDataSchema,
+};
+
+// ── Top-level Kafka message schema ────────────────────────────────────────────
 const notificationEventSchema = z.object({
-  eventId:  z.string().uuid().optional(),   // optional for backward compat — filled below
-  channel:  z.enum(['email', 'push', 'sms']),
-  template: z.string(),
-  priority: z.enum(['high', 'normal', 'low']).default('normal'),
+  eventId:   z.string().uuid().optional(),  // optional for backward compat — filled below
+  channel:   z.enum(['email', 'push', 'sms']),
+  template:  z.string(),
+  priority:  z.enum(['high', 'normal', 'low']).default('normal'),
   recipient: z.string().min(1),
-  data:     z.record(z.string(), z.unknown()).default({}),
-  locale:   z.string().optional(),
+  data:      z.record(z.string(), z.unknown()).default({}),
+  locale:    z.string().optional(),
   createdAt: z.string().optional(),
-  // User identity for logs + preferences
-  userId:   z.string().uuid().optional(),
-  userType: z.enum(['live', 'demo', 'admin']).optional(),
+  userId:    z.string().uuid().optional(),
+  // ↓ REQUIRED for welcome_live / welcome_demo routing
+  userType:  z.enum(['live', 'demo', 'admin']).optional(),
 });
 
 export function createKafkaConsumer(service: NotificationService) {
@@ -56,11 +89,42 @@ export function createKafkaConsumer(service: NotificationService) {
       return;
     }
 
-    // Guarantee eventId — auto-generate if publisher did not include it (backward compat)
+    let template = result.data.template;
+
+    // ── Auto-route welcome email based on userType ────────────────────────────
+    // If publisher sends template: 'welcome', derive the correct variant here
+    // so the publisher doesn't have to know the internal template names.
+    if (template === 'welcome') {
+      const userType = result.data.userType;
+      if (!userType || userType === 'admin') {
+        logger.warn(
+          { userId: result.data.userId, userType },
+          'Welcome event received but userType is missing or admin — skipping',
+        );
+        return;
+      }
+      template = userType === 'live' ? 'welcome_live' : 'welcome_demo';
+      logger.info({ userId: result.data.userId, userType, resolvedTemplate: template }, 'Resolved welcome template');
+    }
+
+    // ── Per-template data validation ──────────────────────────────────────────
+    const dataSchema = TEMPLATE_DATA_SCHEMAS[template];
+    if (dataSchema) {
+      const dataResult = dataSchema.safeParse(result.data.data);
+      if (!dataResult.success) {
+        logger.warn(
+          { template, errors: dataResult.error.flatten(), data: result.data.data },
+          'Template data validation failed — skipping',
+        );
+        return;
+      }
+    }
+
+    // ── Build event ───────────────────────────────────────────────────────────
     const event: NotificationEvent = {
       eventId:   result.data.eventId ?? uuidv4(),
       channel:   result.data.channel,
-      template:  result.data.template as NotificationEvent['template'],
+      template:  template as NotificationEvent['template'],
       priority:  result.data.priority,
       recipient: result.data.recipient,
       data:      result.data.data,

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { NotificationTemplate } from '../types/notification.types';
+import { logger } from '../lib/logger';
 
 // ─── Email Template Engine ────────────────────────────────────────────────────
 // SRP: only responsible for rendering HTML + subject from template ID + data.
@@ -67,7 +68,8 @@ function sanitizeHtml(html: string): string {
 function renderOtp(data: TemplateData): RenderedEmail {
   const otp = str(data, 'otp');
   const expiry = str(data, 'expiryMinutes', '5');
-  const accountEmail = str(data, 'accountEmail', '');
+  const accountEmail = str(data, 'accountEmail');
+  if (!accountEmail) logger.warn({ template: 'otp' }, 'accountEmail missing from OTP data');
   const timestamp = str(data, 'timestamp', new Date().toUTCString());
 
   // Fixed path resolution using process.cwd()
@@ -91,7 +93,8 @@ function renderNewDeviceLogin(data: TemplateData): RenderedEmail {
   const ip = str(data, 'ipAddress', 'Unknown');
   const location = str(data, 'location', 'Unknown');
   const timestamp = str(data, 'timestamp', new Date().toUTCString());
-  const accountEmail = str(data, 'accountEmail', '');
+  const accountEmail = str(data, 'accountEmail');
+  if (!accountEmail) logger.warn({ template: 'new_device_login' }, 'accountEmail missing from login data');
 
   // Fixed path resolution using process.cwd()
   const templatePath = path.join(process.cwd(), 'templates/login.html');
