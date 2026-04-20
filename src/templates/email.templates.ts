@@ -147,7 +147,7 @@ function renderPasswordReset(data: TemplateData): RenderedEmail {
   return {
     subject: '[LiveFXHub] Password Reset Request',
     html,
-    text: `Your LiveFXHub password reset code is: ${otp}. Expires in ${expiry} minutes.`,
+    text: `Reset your LiveFXHub password using this link (expires in 15 minutes): ${resetLink}`,
   };
 }
 
