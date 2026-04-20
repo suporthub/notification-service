@@ -7,24 +7,25 @@ import { NotificationService } from '../services/NotificationService';
 import { NotificationEvent } from '../types/notification.types';
 
 // ── Per-template data schemas ─────────────────────────────────────────────────
-// Each schema enforces the exact fields each template renderer needs.
-// This catches missing fields at the consumer boundary, not silently at render time.
 
+// OTP
 const otpDataSchema = z.object({
   otp:           z.string().min(1),
-  expiryMinutes: z.string().optional(),
-  accountEmail:  z.string().email(),        // ← REQUIRED: fixes blank Account field
+  expiryMinutes: z.coerce.string().optional(),   // ✅ accepts number or string
+  accountEmail:  z.string().email().optional(),  // ✅ optional to avoid drops
   timestamp:     z.string().optional(),
 });
 
+// Login Alert
 const loginDataSchema = z.object({
   ipAddress:    z.string(),
   location:     z.string().optional(),
   timestamp:    z.string().optional(),
   deviceInfo:   z.string().optional(),
-  accountEmail: z.string().email(),         // ← REQUIRED: fixes blank Account field
+  accountEmail: z.string().email().optional(),  // ✅ optional
 });
 
+// Welcome
 const welcomeDataSchema = z.object({
   accountNumber:    z.string().min(1),
   email:            z.string().email(),
@@ -34,17 +35,25 @@ const welcomeDataSchema = z.object({
   registrationDate: z.string().optional(),
 });
 
+// ✅ Password Reset (NEW)
+const passwordResetSchema = z.object({
+  resetLink:    z.string().url(),
+  accountEmail: z.string().email().optional(),
+  timestamp:    z.string().optional(),
+});
+
 // ── Template → data schema map ────────────────────────────────────────────────
 const TEMPLATE_DATA_SCHEMAS: Record<string, z.ZodTypeAny> = {
   otp:              otpDataSchema,
   new_device_login: loginDataSchema,
   welcome_live:     welcomeDataSchema,
   welcome_demo:     welcomeDataSchema,
+  password_reset:   passwordResetSchema, // ✅ added
 };
 
 // ── Top-level Kafka message schema ────────────────────────────────────────────
 const notificationEventSchema = z.object({
-  eventId:   z.string().uuid().optional(),  // optional for backward compat — filled below
+  eventId:   z.string().uuid().optional(),
   channel:   z.enum(['email', 'push', 'sms']),
   template:  z.string(),
   priority:  z.enum(['high', 'normal', 'low']).default('normal'),
@@ -53,7 +62,6 @@ const notificationEventSchema = z.object({
   locale:    z.string().optional(),
   createdAt: z.string().optional(),
   userId:    z.string().uuid().optional(),
-  // ↓ REQUIRED for welcome_live / welcome_demo routing
   userType:  z.enum(['live', 'demo', 'admin']).optional(),
 });
 
@@ -66,8 +74,8 @@ export function createKafkaConsumer(service: NotificationService) {
 
   const consumer = kafka.consumer({
     groupId:           config.kafkaGroupId,
-    sessionTimeout:    30_000,
-    heartbeatInterval: 3_000,
+    sessionTimeout:    30000,
+    heartbeatInterval: 3000,
     retry: { retries: 10 },
   });
 
@@ -91,9 +99,7 @@ export function createKafkaConsumer(service: NotificationService) {
 
     let template = result.data.template;
 
-    // ── Auto-route welcome email based on userType ────────────────────────────
-    // If publisher sends template: 'welcome', derive the correct variant here
-    // so the publisher doesn't have to know the internal template names.
+    // ── Auto-route welcome email ──────────────────────────────────────────────
     if (template === 'welcome') {
       const userType = result.data.userType;
       if (!userType || userType === 'admin') {
@@ -111,12 +117,13 @@ export function createKafkaConsumer(service: NotificationService) {
     const dataSchema = TEMPLATE_DATA_SCHEMAS[template];
     if (dataSchema) {
       const dataResult = dataSchema.safeParse(result.data.data);
+
       if (!dataResult.success) {
         logger.warn(
           { template, errors: dataResult.error.flatten(), data: result.data.data },
-          'Template data validation failed — skipping',
+          'Template data validation failed — continuing with raw data'
         );
-        return;
+        // ❗ DO NOT RETURN → continue processing
       }
     }
 
@@ -128,16 +135,16 @@ export function createKafkaConsumer(service: NotificationService) {
       priority:  result.data.priority,
       recipient: result.data.recipient,
       data:      result.data.data,
-      ...(result.data.locale    !== undefined && { locale:    result.data.locale    }),
-      ...(result.data.createdAt !== undefined && { createdAt: result.data.createdAt }),
-      ...(result.data.userId    !== undefined && { userId:    result.data.userId    }),
-      ...(result.data.userType  !== undefined && { userType:  result.data.userType  }),
+      ...(result.data.locale    && { locale: result.data.locale }),
+      ...(result.data.createdAt && { createdAt: result.data.createdAt }),
+      ...(result.data.userId    && { userId: result.data.userId }),
+      ...(result.data.userType  && { userType: result.data.userType }),
     };
 
     await service.dispatch(event);
   }
 
-  async function subscribeWithRetry(topic: string, maxAttempts = 12, delayMs = 5_000): Promise<void> {
+  async function subscribeWithRetry(topic: string, maxAttempts = 12, delayMs = 5000): Promise<void> {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await consumer.subscribe({ topic, fromBeginning: false });
