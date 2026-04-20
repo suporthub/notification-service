@@ -133,21 +133,23 @@ function renderPasswordChanged(data: TemplateData): RenderedEmail {
 }
 
 function renderPasswordReset(data: TemplateData): RenderedEmail {
-  const resetLink    = str(data, 'resetLink');
+  const otp          = str(data, 'otp');
+  const expiry       = str(data, 'expiryMinutes', '15');
   const accountEmail = str(data, 'accountEmail');
   const timestamp    = str(data, 'timestamp', new Date().toUTCString());
 
   const templatePath = path.join(process.cwd(), 'templates/resetpassword.html');
   let html = fs.readFileSync(templatePath, 'utf8');
 
-  html = html.replace(/{{RESET_LINK}}/g,     resetLink);
-  html = html.replace(/{{ACCOUNT_EMAIL}}/g,  accountEmail);
-  html = html.replace(/{{TIMESTAMP}}/g,      timestamp);
+  html = html.replace(/{{OTP_CODE}}/g,        otp);
+  html = html.replace(/{{EXPIRY_MINUTES}}/g,  expiry);
+  html = html.replace(/{{ACCOUNT_EMAIL}}/g,   accountEmail);
+  html = html.replace(/{{TIMESTAMP}}/g,       timestamp);
 
   return {
     subject: '[LiveFXHub] Password Reset Request',
     html,
-    text: `Reset your LiveFXHub password by clicking the link sent to ${accountEmail}. The link expires in 15 minutes.`,
+    text: `Your LiveFXHub password reset code is: ${otp}. Expires in ${expiry} minutes.`,
   };
 }
 
