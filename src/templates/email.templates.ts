@@ -133,17 +133,19 @@ function renderPasswordChanged(data: TemplateData): RenderedEmail {
 }
 
 function renderPasswordReset(data: TemplateData): RenderedEmail {
-  const otp = str(data, 'otp');
-  const expiry = str(data, 'expiryMinutes', '10');
-  const html = layout('Password Reset', `
-    <h2 style="color:#0f172a;margin:0 0 8px;">Password Reset Request</h2>
-    <p style="color:#475569;">Use the code below to reset your LiveFXHub password:</p>
-    ${otpBox(otp)}
-    <p style="color:#64748b;font-size:13px;">Expires in <strong>${expiry} minutes</strong>. Do not share this code.</p>
-    <p style="color:#94a3b8;font-size:12px;margin-top:24px;">If you didn't request a password reset, ignore this email — your password won't change.</p>
-  `);
+  const resetLink    = str(data, 'resetLink');
+  const accountEmail = str(data, 'accountEmail');
+  const timestamp    = str(data, 'timestamp', new Date().toUTCString());
+
+  const templatePath = path.join(process.cwd(), 'templates/resetpassword.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  html = html.replace(/{{RESET_LINK}}/g,     resetLink);
+  html = html.replace(/{{ACCOUNT_EMAIL}}/g,  accountEmail);
+  html = html.replace(/{{TIMESTAMP}}/g,      timestamp);
+
   return {
-    subject: '[LiveFXHub] Password Reset Code',
+    subject: '[LiveFXHub] Password Reset Request',
     html,
     text: `Your LiveFXHub password reset code is: ${otp}. Expires in ${expiry} minutes.`,
   };
