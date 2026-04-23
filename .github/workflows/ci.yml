@@ -26,6 +26,9 @@ jobs:
             git fetch origin
             git reset --hard origin/${{ github.ref_name }}
             
+            # Get short SHA for precise tagging
+            export SHA=$(git rev-parse --short HEAD)
+            
             echo "🌐 Fix docker timeout"
             export DOCKER_CLIENT_TIMEOUT=600
             export COMPOSE_HTTP_TIMEOUT=600
@@ -34,11 +37,11 @@ jobs:
             docker images | grep node:20-bullseye || docker pull node:20-bullseye
             
             echo "🐳 Build"
-            docker build -t notification-service:local . \
-              || (sleep 5 && docker build -t notification-service:local .)
+            docker build -t notification-service:${SHA} . \
+              || (sleep 5 && docker build -t notification-service:${SHA} .)
             
             echo "📦 Import to k3s"
-            docker save notification-service:local | sudo k3s ctr images import -
+            docker save notification-service:${SHA} | sudo k3s ctr images import -
             
-            echo "🚀 Restart deployment"
-            kubectl rollout restart deployment/notification-service -n default
+            echo "🚀 Update deployment image"
+            kubectl set image deployment/notification-service notification-service=notification-service:${SHA} -n default
